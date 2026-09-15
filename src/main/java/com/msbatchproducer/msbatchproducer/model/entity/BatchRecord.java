@@ -3,38 +3,33 @@ package com.msbatchproducer.msbatchproducer.model.entity;
 import com.msbatchproducer.msbatchproducer.model.enums.RecordStatus;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-import org.springframework.batch.core.BatchStatus;
-
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "batch_record")
-@Getter
-@Setter
-@AllArgsConstructor
-@NoArgsConstructor
-@Builder
+@Table(name = "batch_record", indexes = @Index(name = "ix_record_upload_status", columnList = "upload_id,status"),
+       uniqueConstraints = @UniqueConstraint(name = "uk_record_upload_key", columnNames = {"upload_id", "business_key"}))
+@Getter @Setter @NoArgsConstructor
 public class BatchRecord {
-
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "record_ids")
+    @SequenceGenerator(name = "record_ids", sequenceName = "batch_record_seq", allocationSize = 50)
     private Long id;
-
-    @Column(nullable = false, unique = true)
-    private Long businessKey;
-
-    @Enumerated(EnumType.STRING)
-    private RecordStatus status;
-
     @Column(nullable = false)
+    private Long businessKey;
+    @Column(nullable = false, length = 36)
+    private String uploadId;
+    @Column(nullable = false, length = 512)
+    private String sourceName;
+    @org.hibernate.annotations.Nationalized @Lob @Column(nullable = false)
+    private String payload;
+    @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20)
+    private RecordStatus status;
+    @Column(length = 2000)
     private String errorMessage;
-
-    @CreationTimestamp
+    @Column(nullable = false)
     private LocalDateTime createdAt;
-
-    @UpdateTimestamp
+    @Column(nullable = false)
     private LocalDateTime updatedAt;
-
+    @Version
+    private long version;
 }

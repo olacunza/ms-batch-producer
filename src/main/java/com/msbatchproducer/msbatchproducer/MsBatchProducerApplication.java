@@ -8,7 +8,6 @@ public class MsBatchProducerApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(MsBatchProducerApplication.class, args);
-        System.out.println("Validar QQQQ");
     }
 
 }

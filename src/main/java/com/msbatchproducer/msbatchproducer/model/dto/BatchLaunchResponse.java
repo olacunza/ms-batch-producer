@@ -1,11 +1,2 @@
 package com.msbatchproducer.msbatchproducer.model.dto;
-
-import lombok.Data;
-
-@Data
-public class BatchLaunchResponse {
-
-    private Long jobExecutionId;
-    private String status;
-
-}
+public record BatchLaunchResponse(Long jobExecutionId, String uploadId, String status, String statusUrl) {}

@@ -31,3 +31,9 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Local credentials and uploaded data
+/config/sqlserver-local.properties
+/.env
+/data/
+.DS_Store

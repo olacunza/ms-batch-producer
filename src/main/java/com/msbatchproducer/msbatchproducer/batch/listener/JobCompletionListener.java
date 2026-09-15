@@ -18,6 +18,11 @@ public class JobCompletionListener implements JobExecutionListener {
 
     @Override
     public void afterJob(JobExecution jobExecution) {
+        if (jobExecution.getStatus() == org.springframework.batch.core.BatchStatus.COMPLETED) {
+            String file = jobExecution.getJobParameters().getString("filePath");
+            if (file != null) try { java.nio.file.Files.deleteIfExists(java.nio.file.Path.of(file)); }
+            catch (java.io.IOException e) { log.warn("No se pudo borrar la carga completada del job {}", jobExecution.getId(), e); }
+        }
         ExitStatus exitStatus = jobExecution.getExitStatus();
         log.info("Job finished. id={}, status={}, exitCode={}",
                 jobExecution.getId(), jobExecution.getStatus(), exitStatus.getExitCode());

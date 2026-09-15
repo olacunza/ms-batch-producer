@@ -2,53 +2,47 @@ package com.msbatchproducer.msbatchproducer.config;
 
 import com.msbatchproducer.msbatchproducer.batch.listener.JobCompletionListener;
 import com.msbatchproducer.msbatchproducer.batch.processor.InputRecordProcessor;
+import com.msbatchproducer.msbatchproducer.batch.reader.XmlArchiveReader;
 import com.msbatchproducer.msbatchproducer.batch.writer.InputRecordWriter;
+import com.msbatchproducer.msbatchproducer.model.dto.XmlInput;
 import com.msbatchproducer.msbatchproducer.model.entity.BatchRecord;
-import lombok.RequiredArgsConstructor;
-import org.springframework.batch.core.Job;
-import org.springframework.batch.core.Step;
-import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
+import org.springframework.batch.core.*;
 import org.springframework.batch.core.job.builder.JobBuilder;
-import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
-import org.springframework.batch.item.file.FlatFileItemReader;
+import org.springframework.batch.core.launch.support.TaskExecutorJobLauncher;
+import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.*;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.transaction.PlatformTransactionManager;
 
-@Configuration
-@EnableBatchProcessing
-@RequiredArgsConstructor
+@Configuration @EnableScheduling
 public class BatchConfig {
-
-    private final JobRepository jobRepository;
-    private final PlatformTransactionManager transactionManager;
-    private final JobCompletionListener jobCompletionListener;
-
-    @Value("${app.batch.chunk-size:100}")
-    private int chunkSize;
-
     @Bean
-    public Step processInputFileStep(
-            FlatFileItemReader<String> inputFileReader,
-            InputRecordProcessor inputRecordProcessor,
-            InputRecordWriter inputRecordWriter){
-
-        return new StepBuilder("processInputFileStep", jobRepository)
-                .<String, BatchRecord>chunk(chunkSize, transactionManager)
-                .reader(inputFileReader)
-                .processor(inputRecordProcessor)
-                .writer(inputRecordWriter)
-                .build();
+    public ThreadPoolTaskExecutor batchExecutor() {
+        var executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2); executor.setMaxPoolSize(2); executor.setQueueCapacity(10);
+        executor.setThreadNamePrefix("batch-upload-");
+        executor.setWaitForTasksToCompleteOnShutdown(true); executor.setAwaitTerminationSeconds(60);
+        return executor;
     }
-
     @Bean
-    public Job inputFileJob(Step processInputFileStep) {
-        return new JobBuilder("inputFileJob", jobRepository)
-                .listener(jobCompletionListener)
-                .start(processInputFileStep)
-                .build();
+    public TaskExecutorJobLauncher uploadJobLauncher(JobRepository repository, ThreadPoolTaskExecutor batchExecutor) throws Exception {
+        var launcher = new TaskExecutorJobLauncher();
+        launcher.setJobRepository(repository); launcher.setTaskExecutor(batchExecutor); launcher.afterPropertiesSet();
+        return launcher;
     }
-
+    @Bean
+    public Step processInputFileStep(JobRepository repository, PlatformTransactionManager transactionManager,
+            XmlArchiveReader reader, InputRecordProcessor processor, InputRecordWriter writer,
+            @Value("${app.batch.chunk-size:100}") int size) {
+        return new StepBuilder("processInputFileStep", repository)
+            .<XmlInput, BatchRecord>chunk(size, transactionManager)
+            .reader(reader).processor(processor).writer(writer).build();
+    }
+    @Bean
+    public Job inputFileJob(JobRepository repository, Step processInputFileStep, JobCompletionListener listener) {
+        return new JobBuilder("inputFileJob", repository).listener(listener).start(processInputFileStep).build();
+    }
 }

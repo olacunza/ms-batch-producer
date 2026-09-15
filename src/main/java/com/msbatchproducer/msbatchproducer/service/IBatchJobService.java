@@ -1,9 +1,8 @@
 package com.msbatchproducer.msbatchproducer.service;
-
-import org.springframework.batch.core.JobExecution;
-
+import com.msbatchproducer.msbatchproducer.model.dto.*;
+import org.springframework.web.multipart.MultipartFile;
 public interface IBatchJobService {
-
-    JobExecution launch(String filePath);
-
+    BatchLaunchResponse launch(MultipartFile file) throws Exception;
+    JobStatusResponse status(long id);
+    BatchLaunchResponse restart(long id) throws Exception;
 }

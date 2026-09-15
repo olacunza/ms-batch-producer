@@ -1,11 +1,5 @@
 package com.msbatchproducer.msbatchproducer.model.dto;
 
-import lombok.Data;
-
-@Data
-public class RecordReadyEvent {
-
-    private Long recordId;
-    private Long businessKey;
-
-}
+import java.time.LocalDateTime;
+public record RecordReadyEvent(String eventId, int schemaVersion, Long recordId,
+                               Long businessKey, String uploadId, @com.fasterxml.jackson.annotation.JsonFormat(shape = com.fasterxml.jackson.annotation.JsonFormat.Shape.STRING) LocalDateTime occurredAt) {}
